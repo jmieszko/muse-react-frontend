@@ -26,7 +26,7 @@ class SongContainer extends Component {
           }
         };
         render() {
-          return <SongList dogs={this.state.songs} />;
+          return <SongList songs={this.state.songs} />;
         }
       }
       export default SongContainer;
