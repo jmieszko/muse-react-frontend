@@ -2,15 +2,21 @@ import React, { Component } from "react";
 import axios from "axios";
 import SongList from "./SongList";
 import CreateSongForm from "./CreateSongForm";
-import {Grid} from 'semantic-ui-react';
+import { Grid } from "semantic-ui-react";
+import EditSongModal from "./EditSongModal";
 
 class SongContainer extends Component {
-	constructor(props) {
-		super(props);
-		this.state = {
-			songs: [],
-		};
-	}
+	state = {
+		songs: [],
+		songToEdit: {
+			title: "",
+			artist: "",
+			album: "",
+			id: "",
+		},
+		showEditModal: false,
+	};
+
 	componentDidMount() {
 		this.getSongs();
 	}
@@ -30,18 +36,19 @@ class SongContainer extends Component {
 		} catch (err) {
 			console.log("error", err);
 		}
-  };
-  
-  deleteSong = async (id) =>{
-    console.log(id);
-    const deleteSongResponse = await axios.delete(
-      `${process.env.REACT_APP_FLASK_API_URL}/api/v1/songs/${id}`
-    );
-    console.log(deleteSongResponse)
-    this.setState({
-      songs: this.state.songs.filter((song) => song.id!== id)});
-    console.log(deleteSongResponse, ' response from Flask server');
-  };
+	};
+
+	deleteSong = async (id) => {
+		console.log(id);
+		const deleteSongResponse = await axios.delete(
+			`${process.env.REACT_APP_FLASK_API_URL}/api/v1/songs/${id}`
+		);
+		console.log(deleteSongResponse);
+		this.setState({
+			songs: this.state.songs.filter((song) => song.id !== id),
+		});
+		console.log(deleteSongResponse, " response from Flask server");
+	};
 
 	getSongs = async () => {
 		try {
@@ -56,19 +63,91 @@ class SongContainer extends Component {
 			console.log(err);
 		}
 	};
+
+	openAndEdit = (songFromTheList) => {
+		console.log(songFromTheList, " songToEdit ");
+		this.setState({
+			showEditModal: true,
+			songToEdit: {
+				...songFromTheList,
+			},
+		});
+	};
+
+	handleEditChange = (e) => {
+		this.setState({
+			songToEdit: {
+				...this.state.songToEdit,
+				[e.currentTarget.name]: e.currentTarget.value,
+			},
+		});
+	};
+
+	closeAndEdit = async (e) => {
+		e.preventDefault();
+		try {
+			const editResponse = await axios.put(
+				process.env.REACT_APP_FLASK_API_URL +
+					"/api/v1/songs/" +
+					this.state.songToEdit.id,
+				this.state.songToEdit
+			);
+
+			console.log(editResponse, "parsed edit");
+
+			const newSongArrayWithEdit = this.state.songs.map((song) => {
+				if (song.id === editResponse.data.data.id) {
+					song = editResponse.data.data;
+				}
+				return song;
+			});
+
+			this.setState({
+				showEditModal: false,
+				songs: newSongArrayWithEdit,
+			});
+		} catch (err) {
+			console.log(err);
+		}
+	};
+
+	closeModal = (e) =>{
+		this.setState({
+			showEditModal: false,
+		});
+	};
+
 	render() {
-    return(
-		<Grid columns={2} divided textAlign='center' style={{ height: '100%' }} verticalAlign='top' stackable>
-        <Grid.Row>
-          <Grid.Column>
-            <SongList songs={this.state.songs} deleteSong={this.deleteSong}/>
-          </Grid.Column>
-          <Grid.Column>
-           <CreateSongForm addSong={this.addSong}/>
-          </Grid.Column>
-        </Grid.Row>
-      </Grid>
-      )
+		return (
+			<Grid
+				columns={2}
+				divided
+				textAlign="center"
+				style={{ height: "100%" }}
+				verticalAlign="top"
+				stackable
+			>
+				<Grid.Row>
+					<Grid.Column>
+						<SongList
+							songs={this.state.songs}
+							deleteSong={this.deleteSong}
+							openAndEdit={this.openAndEdit}
+						/>
+					</Grid.Column>
+					<Grid.Column>
+						<CreateSongForm addSong={this.addSong} />
+					</Grid.Column>
+					<EditSongModal
+						handleEditChange={this.handleEditChange}
+						open={this.state.showEditModal}
+						songToEdit={this.state.songToEdit}
+						closeAndEdit={this.closeAndEdit}
+						closeModal={this.closeModal}
+					/>
+				</Grid.Row>
+			</Grid>
+		);
 	}
 }
 export default SongContainer;
